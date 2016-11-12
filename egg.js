@@ -1,6 +1,6 @@
 //解析器 接受字符串，返回一个对象
 function parseExpression(program){
-  program = skipSpace(program);
+  program = pace(program);
   var match, expr;
   if(match = /^"([^"]*)"/.exec(program)) {  //字符串
     expr = {type: "value", value: match[1]};
@@ -14,11 +14,8 @@ function parseExpression(program){
   return parseApply(expr, program.slice(match[0].length));
 }
 function skipSpace(string){
-  var first = string.search(/\S/);
-  if(first == -1){
-    return "";
-  }
-  return string.slice(first);
+  var skippable = string.match(/^(\s|#.*)*/);
+  return string.slice(skippable[0].length);
 }
 //是否是一个应用，如果是，解析带括号的参数列表
 function parseApply(expr, program){
@@ -138,6 +135,22 @@ specialForms["fun"] = function(args, env){
     }
     return evaluate(body, localEnv);
   };
+};
+
+specialForms["set"] = function(args, env){
+  if(args.length != 2 || args[0].type != "word"){
+    throw new SyntaxError("Bad use of set");
+  }
+  var varName = args[0].name;
+  var value = evaluate(args[1], env);
+
+  for (var scope = env; scope; scope = Object.getPrototypeOf(scope)){
+    if (Object.prototype.hasOwnProperty.call(scope, varName)){
+      scope[varName] = value;
+      return value;
+    }
+  }
+  throw new ReferenceError("Setting undefined variable " + varName);
 };
 
 var topEnv = Object.create(null);
